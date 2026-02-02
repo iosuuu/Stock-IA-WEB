@@ -11,14 +11,17 @@ import {
     X,
     Cpu,
     BarChart3, // For Metrics
-    History // For Activity
+    History, // For Activity
+    Languages // For Language Selection
 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Layout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const user = getCurrentUser();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const { t, language, setLanguage } = useLanguage();
 
     // Get selected company
     // Logic: If user is restricted (linked_company), force that company.
@@ -128,15 +131,49 @@ const Layout = () => {
                 </div>
 
                 <div style={{ flex: 1, padding: '1rem 0', overflowY: 'auto' }}>
-                    <NavItem to="/dashboard" icon={LayoutDashboard} label="Overview" />
-                    <NavItem to="/dashboard/metrics" icon={BarChart3} label="Analytics" />
-                    <NavItem to="/dashboard/activity" icon={History} label="Activity History" />
-                    <NavItem to="/dashboard/trace" icon={Cpu} label="Trace & Analyze" />
-                    <NavItem to="/dashboard/stock" icon={Package} label="Stock Manager" />
+                    <NavItem to="/dashboard" icon={LayoutDashboard} label={t('overview')} />
+                    <NavItem to="/dashboard/metrics" icon={BarChart3} label={t('analytics')} />
+                    <NavItem to="/dashboard/activity" icon={History} label={t('activity')} />
+                    <NavItem to="/dashboard/trace" icon={Cpu} label={t('trace')} />
+                    <NavItem to="/dashboard/stock" icon={Package} label={t('stock')} />
+
+                    <div style={{ margin: '1rem 1.5rem 0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }} />
+
+                    {/* Language Selector */}
+                    <div style={{ padding: '0 1rem' }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0.75rem 1rem',
+                                color: 'var(--color-text-muted)',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            <Languages size={18} style={{ marginRight: '0.75rem' }} />
+                            <select
+                                value={language}
+                                onChange={(e) => setLanguage(e.target.value)}
+                                style={{
+                                    background: 'transparent',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    color: 'var(--color-text)',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    outline: 'none',
+                                    width: '100%',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                            </select>
+                        </div>
+                    </div>
 
                     {user?.role === 'admin' && (
                         <>
-                            <div style={{ margin: '1rem 1.5rem 0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Admin</div>
+                            <div style={{ margin: '1rem 1.5rem 0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>{t('admin')}</div>
                             {/* Switch Company Button */}
                             <div
                                 onClick={handleSwitchCompany}
@@ -154,9 +191,9 @@ const Layout = () => {
                                 className="nav-hover"
                             >
                                 <Users size={20} style={{ marginRight: '0.75rem' }} />
-                                <span style={{ fontWeight: 500 }}>Switch Company</span>
+                                <span style={{ fontWeight: 500 }}>{t('switchCompany')}</span>
                             </div>
-                            <NavItem to="/dashboard/users" icon={Users} label="User Management" />
+                            <NavItem to="/dashboard/users" icon={Users} label={t('userManagement')} />
                         </>
                     )}
                 </div>
@@ -180,7 +217,7 @@ const Layout = () => {
                         }}
                     >
                         <LogOut size={16} style={{ marginRight: '8px' }} />
-                        Log Out
+                        {t('logOut')}
                     </button>
                 </div>
             </div>
