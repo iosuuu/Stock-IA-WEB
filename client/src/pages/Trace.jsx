@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { UploadCloud, CheckCircle, Cpu, Loader } from 'lucide-react';
 import { authHeader } from '../auth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Trace = () => {
+    const { t } = useLanguage();
     const [file, setFile] = useState(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [results, setResults] = useState(null);
@@ -31,7 +33,7 @@ const Trace = () => {
             setResults(data.items);
         } catch (error) {
             console.error(error);
-            alert("Analysis failed");
+            alert(t('analysisFailed'));
         } finally {
             setAnalyzing(false);
         }
@@ -45,7 +47,7 @@ const Trace = () => {
                 headers: { 'Content-Type': 'application/json', ...authHeader() },
                 body: JSON.stringify({ items: results })
             });
-            setSuccessMessage("Stock updated successfully!");
+            setSuccessMessage(t('stockUpdated'));
             setResults(null);
             setFile(null);
         } catch (error) {
@@ -57,7 +59,7 @@ const Trace = () => {
         <div>
             <h1 style={{ fontSize: '2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
                 <Cpu style={{ marginRight: '10px', color: 'var(--color-accent)' }} />
-                AI Analysis Center
+                {t('aiAnalysisCenter')}
             </h1>
 
             <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
@@ -74,9 +76,9 @@ const Trace = () => {
                             />
                             <UploadCloud size={64} color="var(--color-primary)" style={{ marginBottom: '1rem' }} />
                             <h3 style={{ margin: 0 }}>
-                                {file ? file.name : "Drop DESADV / EDI file here or click to upload"}
+                                {file ? file.name : t('dropFile')}
                             </h3>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Supported formats: .xml (Items), .txt (CSV)</p>
+                            <p style={{ color: 'var(--color-text-muted)' }}>{t('supportedFormats')}</p>
                         </div>
 
                         <button
@@ -85,32 +87,32 @@ const Trace = () => {
                             onClick={handleAnalyze}
                             disabled={!file || analyzing}
                         >
-                            {analyzing ? <><Loader className="spin" size={20} /> Analyzing...</> : "Analyze with AI"}
+                            {analyzing ? <><Loader className="spin" size={20} /> {t('analyzing')}</> : t('analyzeAi')}
                         </button>
                     </>
                 )}
 
                 {analyzing && (
                     <div style={{ marginTop: '2rem' }}>
-                        <p className="pulse">Processing document structure...</p>
-                        <p className="pulse" style={{ animationDelay: '0.5s' }}>Extracting Logistics Data (Supplier, Location)...</p>
+                        <p className="pulse">{t('processing')}</p>
+                        <p className="pulse" style={{ animationDelay: '0.5s' }}>{t('extracting')}</p>
                     </div>
                 )}
 
                 {results && (
                     <div>
-                        <h2 style={{ color: 'var(--color-accent)' }}>Analysis Complete</h2>
-                        <p style={{ color: 'var(--color-text-muted)' }}>The AI has identified the following items:</p>
+                        <h2 style={{ color: 'var(--color-accent)' }}>{t('analysisComplete')}</h2>
+                        <p style={{ color: 'var(--color-text-muted)' }}>{t('aiIdentified')}</p>
 
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', margin: '2rem 0' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
-                                        <th style={{ padding: '1rem' }}>SKU</th>
-                                        <th style={{ padding: '1rem' }}>Description</th>
-                                        <th style={{ padding: '1rem' }}>Supplier</th>
-                                        <th style={{ padding: '1rem' }}>Location</th>
-                                        <th style={{ padding: '1rem', textAlign: 'right' }}>Qty</th>
+                                        <th style={{ padding: '1rem' }}>{t('sku')}</th>
+                                        <th style={{ padding: '1rem' }}>{t('description')}</th>
+                                        <th style={{ padding: '1rem' }}>{t('supplier')}</th>
+                                        <th style={{ padding: '1rem' }}>{t('location')}</th>
+                                        <th style={{ padding: '1rem', textAlign: 'right' }}>{t('quantity')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -128,8 +130,8 @@ const Trace = () => {
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                            <button className="btn" style={{ background: 'rgba(255,255,255,0.1)' }} onClick={() => setResults(null)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={confirmUpdate}>Confirm & Update Stock</button>
+                            <button className="btn" style={{ background: 'rgba(255,255,255,0.1)' }} onClick={() => setResults(null)}>{t('cancel')}</button>
+                            <button className="btn btn-primary" onClick={confirmUpdate}>{t('confirmUpdate')}</button>
                         </div>
                     </div>
                 )}
@@ -138,7 +140,7 @@ const Trace = () => {
                     <div style={{ padding: '2rem' }}>
                         <CheckCircle size={64} color="var(--color-accent)" style={{ marginBottom: '1rem' }} />
                         <h2>{successMessage}</h2>
-                        <button className="btn btn-primary" onClick={() => { setSuccessMessage(''); setFile(null); }}>Analyze Another</button>
+                        <button className="btn btn-primary" onClick={() => { setSuccessMessage(''); setFile(null); }}>{t('analyzeAnother')}</button>
                     </div>
                 )}
             </div>

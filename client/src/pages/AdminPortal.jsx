@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, ArrowRight, Activity, Box, ShieldCheck, RefreshCw } from 'lucide-react';
 import { authHeader } from '../auth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const AdminPortal = () => {
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -83,16 +85,16 @@ const AdminPortal = () => {
             <div style={{ textAlign: 'center', marginBottom: '4rem', animation: 'fadeIn 0.8s ease-out' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
                     <ShieldCheck size={48} color="var(--color-accent)" style={{ marginRight: '1rem' }} />
-                    <h1 style={{ fontSize: '2.5rem', margin: 0, letterSpacing: '-1px' }}>Admin Portal</h1>
+                    <h1 style={{ fontSize: '2.5rem', margin: 0, letterSpacing: '-1px' }}>{t('adminPortal')}</h1>
                 </div>
                 <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', maxWidth: '600px' }}>
-                    Select an organization to manage. Health metrics are calculated in real-time based on stock retention rates.
+                    {t('selectOrg')}
                 </p>
             </div>
 
             {loading ? (
                 <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-                    <RefreshCw className="spin" size={24} style={{ marginRight: '10px' }} /> Loading organizations...
+                    <RefreshCw className="spin" size={24} style={{ marginRight: '10px' }} /> {t('loadingOrg')}
                 </div>
             ) : (
                 /* Grid */
@@ -157,11 +159,11 @@ const AdminPortal = () => {
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <Activity size={16} color={company.health > 90 ? '#10b981' : company.health > 70 ? '#f59e0b' : '#ef4444'} style={{ marginBottom: '4px' }} />
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{company.health}% Health</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{company.health}% {t('health')}</span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <Box size={16} color={company.color} style={{ marginBottom: '4px' }} />
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{company.stockCount} Items</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{company.stockCount} {t('itemsCap')}</span>
                                 </div>
                             </div>
 

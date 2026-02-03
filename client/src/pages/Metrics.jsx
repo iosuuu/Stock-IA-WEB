@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Package, AlertTriangle } from 'lucide-react';
 import { authHeader } from '../auth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Metrics = () => {
+    const { t } = useLanguage();
     const [metrics, setMetrics] = useState(null);
 
     useEffect(() => {
@@ -31,13 +33,13 @@ const Metrics = () => {
         fetchMetrics();
     }, []);
 
-    if (!metrics) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading Analytics...</div>;
+    if (!metrics) return <div style={{ padding: '2rem', textAlign: 'center' }}>{t('loadingAnalytics')}</div>;
 
     const COLORS = ['#10b981', '#3b82f6', '#ef4444', '#f59e0b'];
 
     return (
         <div>
-            <h1 style={{ marginBottom: '2rem' }}>Warehouse Analytics</h1>
+            <h1 style={{ marginBottom: '2rem' }}>{t('warehouseAnalytics')}</h1>
 
             {/* KPI Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
@@ -46,7 +48,7 @@ const Metrics = () => {
                         <Package color="#3b82f6" />
                     </div>
                     <div>
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Total Items</div>
+                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('totalItems')}</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{metrics.totalStock}</div>
                     </div>
                 </div>
@@ -56,7 +58,7 @@ const Metrics = () => {
                         <ArrowUpRight color="#10b981" />
                     </div>
                     <div>
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Released</div>
+                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('released')}</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{metrics.releasedItems}</div>
                     </div>
                 </div>
@@ -66,9 +68,9 @@ const Metrics = () => {
                         <AlertTriangle color="#ef4444" />
                     </div>
                     <div>
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Retained</div>
+                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('retained')}</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{metrics.retainedItems}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>{metrics.retainedPercentage}% of stock</div>
+                        <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>{metrics.retainedPercentage}{t('percentStock')}</div>
                     </div>
                 </div>
             </div>
@@ -76,7 +78,7 @@ const Metrics = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 {/* Status Distribution */}
                 <div className="glass-panel" style={{ padding: '1.5rem', height: '400px' }}>
-                    <h3 style={{ marginTop: 0 }}>Stock Status Distribution</h3>
+                    <h3 style={{ marginTop: 0 }}>{t('statusDist')}</h3>
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -107,7 +109,7 @@ const Metrics = () => {
 
                 {/* Recent Movements (Traffic Graph) */}
                 <div className="glass-panel" style={{ padding: '1.5rem', height: '400px' }}>
-                    <h3 style={{ marginTop: 0 }}>Traffic Overview (Last 7 Days)</h3>
+                    <h3 style={{ marginTop: 0 }}>{t('trafficOverview')}</h3>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={metrics.movementStats || []}>
                             <defs>
@@ -139,16 +141,16 @@ const Metrics = () => {
 
                 {/* Recent Activity Table */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                    <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Recent Activity</h3>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{t('recentActivity')}</h3>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #334155', textAlign: 'left' }}>
-                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>Time</th>
-                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>Type</th>
-                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>SKU</th>
-                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>Product</th>
-                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500', textAlign: 'right' }}>Qty</th>
+                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>{t('dateTime')}</th>
+                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>{t('status')}</th>
+                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>{t('sku')}</th>
+                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500' }}>{t('description')}</th>
+                                    <th style={{ padding: '0.75rem 0.5rem', color: '#94a3b8', fontWeight: '500', textAlign: 'right' }}>{t('quantity')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -174,7 +176,7 @@ const Metrics = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No recent activity found</td>
+                                        <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>{t('noData')}</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -184,7 +186,7 @@ const Metrics = () => {
 
                 {/* Top Movers List */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                    <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Top Movers (30 Days)</h3>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{t('topMovers')}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {metrics.topMovers && metrics.topMovers.length > 0 ? (
                             metrics.topMovers.map((item, i) => (
@@ -206,7 +208,7 @@ const Metrics = () => {
                                 </div>
                             ))
                         ) : (
-                            <div style={{ textAlign: 'center', color: '#64748b', padding: '1rem' }}>No data available</div>
+                            <div style={{ textAlign: 'center', color: '#64748b', padding: '1rem' }}>{t('noData')}</div>
                         )}
                     </div>
                 </div>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Plus, Minus, Search, Edit2, Trash2, Box } from 'lucide-react';
 import { authHeader } from '../auth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Stock = () => {
+    const { t } = useLanguage();
     const [stock, setStock] = useState([]);
     const [stats, setStats] = useState([]);
     const [search, setSearch] = useState('');
@@ -88,7 +90,7 @@ const Stock = () => {
     };
 
     const handleDeleteClick = async (item) => {
-        if (window.confirm(`Are you sure you want to delete ${item.sku}? This is a destructive action.`)) {
+        if (window.confirm(t('deleteConfirm').replace('{sku}', item.sku))) {
             // Treat as OUT movement for all quantity to keep history, or just delete?
             // User likely wants "Delete" to remove from stock list.
             // Implemented as an explicit OUT movement clearing the stock.
@@ -106,7 +108,7 @@ const Stock = () => {
                 });
                 fetchData();
             } catch (e) {
-                alert('Delete failed');
+                alert(t('deleteFailed'));
             }
         }
     };
@@ -151,7 +153,7 @@ const Stock = () => {
             fetchData();
         } catch (e) {
             console.error(e);
-            alert('Operation failed: ' + e.message);
+            alert(t('operationFailed') + e.message);
         }
     };
 
@@ -169,19 +171,19 @@ const Stock = () => {
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ margin: 0 }}>Stock Manager</h1>
+                <h1 style={{ margin: 0 }}>{t('stock')}</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.3)' }} onClick={() => { resetForm(); setModalMode('IN'); setShowModal(true); }}>
-                        <Plus size={16} /> Incoming
+                        <Plus size={16} /> {t('incoming')}
                     </button>
                     <button className="btn" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)' }} onClick={() => { resetForm(); setModalMode('OUT'); setShowModal(true); }}>
-                        <Minus size={16} /> Outgoing
+                        <Minus size={16} /> {t('outgoing')}
                     </button>
                 </div>
             </div>
 
             {/* Occupancy Stats */}
-            <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--color-text-muted)' }}>Warehouse Occupancy</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--color-text-muted)' }}>{t('warehouseOccupancy')}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                 {stats.length > 0 ? (
                     stats.map(stat => (
@@ -202,13 +204,13 @@ const Stock = () => {
                                 }}></div>
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '6px' }}>
-                                {stat.used} / {stat.max} items
+                                {stat.used} / {stat.max} {t('items')}
                             </div>
                         </div>
                     ))
                 ) : (
                     <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>
-                        No stock data available for stats.
+                        {t('noStockData')}
                     </div>
                 )}
             </div>
@@ -218,7 +220,7 @@ const Stock = () => {
                     <Search size={20} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--color-text-muted)' }} />
                     <input
                         className="input-field"
-                        placeholder="Search by SKU or Description..."
+                        placeholder={t('searchPlaceholder')}
                         style={{ paddingLeft: '40px' }}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -229,13 +231,13 @@ const Stock = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: 'var(--color-text-muted)' }}>
-                                <th style={{ padding: '1rem' }}>SKU</th>
-                                <th style={{ padding: '1rem' }}>Description</th>
-                                <th style={{ padding: '1rem' }}>Location</th>
-                                <th style={{ padding: '1rem' }}>Status</th>
-                                <th style={{ padding: '1rem' }}>Supplier</th>
-                                <th style={{ padding: '1rem' }}>Quantity</th>
-                                <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
+                                <th style={{ padding: '1rem' }}>{t('sku')}</th>
+                                <th style={{ padding: '1rem' }}>{t('description')}</th>
+                                <th style={{ padding: '1rem' }}>{t('location')}</th>
+                                <th style={{ padding: '1rem' }}>{t('status')}</th>
+                                <th style={{ padding: '1rem' }}>{t('supplier')}</th>
+                                <th style={{ padding: '1rem' }}>{t('quantity')}</th>
+                                <th style={{ padding: '1rem', textAlign: 'right' }}>{t('actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -250,7 +252,7 @@ const Stock = () => {
                                             background: item.status === 'Released' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                                             color: item.status === 'Released' ? '#6ee7b7' : '#fca5a5'
                                         }}>
-                                            {item.status || 'Released'}
+                                            {item.status ? t(item.status.toLowerCase()) : t('released')}
                                         </span>
                                     </td>
                                     <td style={{ padding: '1rem' }}>{item.supplier || '-'}</td>
@@ -278,20 +280,20 @@ const Stock = () => {
                 }}>
                     <div className="glass-panel" style={{ width: '500px', padding: '2rem', background: '#1e293b', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h2 style={{ marginTop: 0 }}>
-                            {modalMode === 'EDIT' ? 'Edit Stock Details' : `Manual ${modalMode === 'IN' ? 'Entry' : 'Exit'}`}
+                            {modalMode === 'EDIT' ? t('editStock') : (modalMode === 'IN' ? t('manualEntry') : t('manualExit'))}
                         </h2>
                         <form onSubmit={handleSubmit}>
                             {/* Read-Only fields for Edit */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>SKU</label>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('sku')}</label>
                                     <input className="input-field" required value={formData.sku}
                                         onChange={e => setFormData({ ...formData, sku: e.target.value })}
                                         disabled={modalMode === 'EDIT'} />
                                 </div>
                                 {modalMode !== 'EDIT' && (
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Quantity</label>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('quantity')}</label>
                                         <input type="number" className="input-field" required min="1" value={formData.qty}
                                             onChange={e => setFormData({ ...formData, qty: e.target.value })} />
                                     </div>
@@ -302,17 +304,17 @@ const Stock = () => {
                                 <>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Location (Nave)</label>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('location')} (Nave)</label>
                                             <input className="input-field" value={formData.location}
                                                 onChange={e => setFormData({ ...formData, location: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Status</label>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('status')}</label>
                                             <select className="input-field" value={formData.status}
                                                 onChange={e => setFormData({ ...formData, status: e.target.value })}>
-                                                <option value="Released">Released</option>
-                                                <option value="Retained">Retained</option>
-                                                <option value="Quarantine">Quarantine</option>
+                                                <option value="Released">{t('released')}</option>
+                                                <option value="Retained">{t('retained')}</option>
+                                                <option value="Quarantine">{t('quarantine')}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -320,24 +322,24 @@ const Stock = () => {
                                     {modalMode === 'IN' && (
                                         <>
                                             <div style={{ marginBottom: '1rem' }}>
-                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Description</label>
+                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('description')}</label>
                                                 <input className="input-field" value={formData.desc}
                                                     onChange={e => setFormData({ ...formData, desc: e.target.value })} />
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                                 <div>
-                                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Supplier</label>
+                                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('supplier')}</label>
                                                     <input className="input-field" value={formData.supplier}
                                                         onChange={e => setFormData({ ...formData, supplier: e.target.value })} />
                                                 </div>
                                                 <div>
-                                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Entry Date</label>
+                                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('entryDate')}</label>
                                                     <input type="date" className="input-field" value={formData.entry_date}
                                                         onChange={e => setFormData({ ...formData, entry_date: e.target.value })} />
                                                 </div>
                                             </div>
                                             <div style={{ marginBottom: '1rem' }}>
-                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Document / Ref</label>
+                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('documentRef')}</label>
                                                 <input className="input-field" value={formData.document_ref}
                                                     onChange={e => setFormData({ ...formData, document_ref: e.target.value })} />
                                             </div>
@@ -347,8 +349,8 @@ const Stock = () => {
                             )}
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                                <button type="button" className="btn" style={{ background: 'rgba(255,255,255,0.1)' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Confirm</button>
+                                <button type="button" className="btn" style={{ background: 'rgba(255,255,255,0.1)' }} onClick={() => setShowModal(false)}>{t('cancel')}</button>
+                                <button type="submit" className="btn btn-primary">{t('confirm')}</button>
                             </div>
                         </form>
                     </div>

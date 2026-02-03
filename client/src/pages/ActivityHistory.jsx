@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { History, Search, Filter, Calendar, FileText } from 'lucide-react';
 import { authHeader } from '../auth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const ActivityHistory = () => {
+    const { t } = useLanguage();
     const [movements, setMovements] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -70,7 +72,7 @@ const ActivityHistory = () => {
         <div>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
                 <History size={28} style={{ marginRight: '1rem', color: 'var(--color-accent)' }} />
-                <h1 style={{ margin: 0 }}>Activity History</h1>
+                <h1 style={{ margin: 0 }}>{t('activityHistory')}</h1>
             </div>
 
             {/* Filter Bar */}
@@ -84,7 +86,7 @@ const ActivityHistory = () => {
 
                     {/* Search Text */}
                     <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Search (SKU/Desc)</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>{t('searchLabel')}</label>
                         <div style={{ position: 'relative' }}>
                             <Search size={16} style={{ position: 'absolute', left: '10px', top: '12px', color: 'var(--color-text-muted)' }} />
                             <input
@@ -99,7 +101,7 @@ const ActivityHistory = () => {
 
                     {/* Supplier */}
                     <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Supplier / Company</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>{t('supplierLabel')}</label>
                         <input
                             className="input-field"
                             placeholder="Provider Name..."
@@ -111,7 +113,7 @@ const ActivityHistory = () => {
 
                     {/* Date Range */}
                     <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Date Range</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>{t('dateRange')}</label>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <input
                                 type="date"
@@ -132,14 +134,14 @@ const ActivityHistory = () => {
 
                     {/* Type */}
                     <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Movement Type</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>{t('movementType')}</label>
                         <select
                             className="input-field"
                             style={{ width: '100%', boxSizing: 'border-box' }}
                             value={filters.type}
                             onChange={e => setFilters({ ...filters, type: e.target.value })}
                         >
-                            <option value="">All Types</option>
+                            <option value="">{t('allTypes')}</option>
                             <option value="IN">Incoming (IN)</option>
                             <option value="OUT">Outgoing (OUT)</option>
                         </select>
@@ -153,7 +155,7 @@ const ActivityHistory = () => {
                             whiteSpace: 'nowrap',
                             padding: '0.6rem 1rem'
                         }}>
-                            Last Month
+                            {t('lastMonth')}
                         </button>
                         <button type="submit" className="btn btn-primary" style={{
                             flex: 1,
@@ -163,7 +165,7 @@ const ActivityHistory = () => {
                             whiteSpace: 'nowrap'
                         }}>
                             <Filter size={16} style={{ marginRight: '8px' }} />
-                            Filter
+                            {t('filter')}
                         </button>
                     </div>
                 </form>
@@ -175,18 +177,18 @@ const ActivityHistory = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', padding: '1rem' }}>
                         <thead>
                             <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>Date & Time</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>Type</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>Reference</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>Details</th>
-                                <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>Quantity</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>{t('dateTime')}</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>{t('status')}</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>{t('reference')}</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>{t('details')}</th>
+                                <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>{t('quantity')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center' }}>Loading history...</td></tr>
+                                <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center' }}>{t('loadingHistory')}</td></tr>
                             ) : movements.length === 0 ? (
-                                <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No movements found matching filters.</td></tr>
+                                <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>{t('noMovements')}</td></tr>
                             ) : (
                                 movements.map((move) => (
                                     <tr key={move.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -214,7 +216,7 @@ const ActivityHistory = () => {
                                             )}
                                         </td>
                                         <td style={{ padding: '1rem' }}>
-                                            <div style={{ fontWeight: 500 }}>{move.description || "Unknown Item"}</div>
+                                            <div style={{ fontWeight: 500 }}>{move.description || t('unknownItem')}</div>
                                             <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
                                                 {/* Logic to show supplier if different from main description */}
                                                 {(move.current_supplier || move.details) && (
