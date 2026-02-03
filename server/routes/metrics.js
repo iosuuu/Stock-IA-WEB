@@ -10,8 +10,13 @@ router.get('/', verifyToken, (req, res) => {
         retainedItems: 0,
         releasedItems: 0,
         retainedPercentage: 0,
-        totalValueEstimate: 0, // Mock value
-        statusDistribution: []
+        statusDistribution: [],
+        turnoverRate: 0, // [NEW] KPI
+        occupancyRate: 0, // [NEW] KPI
+        avgStorageTime: 0, // [NEW] KPI
+        deadStockCount: 0, // [NEW] KPI
+        topMovers: [],
+        alerts: [] // [NEW] Smart Alerts
     };
 
     // Filter Logic for Stock
@@ -19,49 +24,101 @@ router.get('/', verifyToken, (req, res) => {
     const stockParams = userCompany ? [userCompany] : [];
 
     db.serialize(() => {
-        // 1. Total Stock & Status Counts
-        db.all(`SELECT status, SUM(quantity) as count FROM stock ${stockWhere} GROUP BY status`, stockParams, (err, rows) => {
+        // 1. Total Stock & Status Counts & Occupancy Calculation
+        // Assuming max capacity is 5000 units for this example
+        const MAX_CAPACITY = 5000;
+
+        db.all(`SELECT quantity, status, entry_date, supplier FROM stock ${stockWhere}`, stockParams, (err, rows) => {
             if (err) return res.status(500).json({ error: "DB Error" });
 
-            rows.forEach(row => {
-                metrics.totalStock += row.count;
-                if (row.status === 'Retained') metrics.retainedItems += row.count;
-                else if (row.status === 'Released') metrics.releasedItems += row.count;
+            let totalQty = 0;
+            let totalDays = 0;
+            const now = new Date();
 
-                metrics.statusDistribution.push({ name: row.status, value: row.count });
+            rows.forEach(row => {
+                const qty = row.quantity || 0;
+                totalQty += qty;
+
+                if (row.status === 'Retained') metrics.retainedItems += qty; // Note: Counting items, not rows, if needed. Logic preserved.
+                // Actually existing logic counted 'rows' as rows.count which was SUM(quantity). 
+                // Let's stick to the previous aggregation query to be safe or re-aggregate here.
+                // Re-aggregating here is better for row-level calc like storage time.
             });
+
+            // Re-query for Aggregated numbers to match UI expectations exactly if preferred, 
+            // but let's do it manually for efficiency since we have the rows.
+            metrics.retainedItems = 0;
+            metrics.releasedItems = 0;
+            const statusMap = {};
+
+            rows.forEach(row => {
+                const qty = row.quantity || 0;
+                if (row.status === 'Retained') metrics.retainedItems += qty;
+                else if (row.status === 'Released') metrics.releasedItems += qty;
+
+                if (!statusMap[row.status]) statusMap[row.status] = 0;
+                statusMap[row.status] += qty;
+
+                // Storage Time Calculation
+                if (row.entry_date) {
+                    const entry = new Date(row.entry_date);
+                    const diffTime = Math.abs(now - entry);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    totalDays += (diffDays * qty); // Weighted by quantity
+
+                    // Dead Stock Detection (> 90 days)
+                    if (diffDays > 90) {
+                        metrics.deadStockCount++;
+                        metrics.alerts.push({
+                            type: 'warning',
+                            message: `Dead Stock: ${qty} units from ${row.supplier} (In stock ${diffDays} days)`
+                        });
+                    }
+                }
+            });
+
+            metrics.totalStock = totalQty;
+            metrics.statusDistribution = Object.keys(statusMap).map(key => ({ name: key, value: statusMap[key] }));
 
             if (metrics.totalStock > 0) {
                 metrics.retainedPercentage = ((metrics.retainedItems / metrics.totalStock) * 100).toFixed(1);
+                metrics.avgStorageTime = (totalDays / metrics.totalStock).toFixed(1);
             }
 
+            metrics.occupancyRate = ((metrics.totalStock / MAX_CAPACITY) * 100).toFixed(1);
+
+
             // 2. Recent Movements (Filtered by JOIN stock supplier if restricted)
-            let moveWhere = `WHERE timestamp >= date('now', '-7 days')`;
+            let moveWhere = `WHERE timestamp >= date('now', '-30 days')`; // Expanded to 30 days for turnover calc
             const moveParams = [];
 
             if (userCompany) {
-                // We must join stock table to filter by supplier for movements
-                // Or filter loosely by details if legacy. Here we filter deeply.
                 moveWhere += ` AND (s.supplier = ? OR m.details LIKE ?)`;
                 moveParams.push(userCompany, `%${userCompany}%`);
             }
 
-            // If userCompany, we need JOIN. If not, simple query is faster.
+            // Turnover = (Total Outflow / Avg Inventory). Using simplified Total Outflow for now.
             const moveSql = userCompany ?
-                `SELECT strftime('%Y-%m-%d', m.timestamp) as date, m.type, SUM(m.quantity) as total_qty 
+                `SELECT strftime('%Y-%m-%d', m.timestamp) as date, m.type, m.sku, SUM(m.quantity) as total_qty 
                  FROM movements m
                  LEFT JOIN stock s ON m.sku = s.sku
                  ${moveWhere}
-                 GROUP BY date, m.type 
+                 GROUP BY date, m.type, m.sku 
                  ORDER BY date` :
-                `SELECT strftime('%Y-%m-%d', timestamp) as date, type, SUM(quantity) as total_qty 
+                `SELECT strftime('%Y-%m-%d', timestamp) as date, type, sku, SUM(quantity) as total_qty 
                  FROM movements 
-                 WHERE timestamp >= date('now', '-7 days') 
-                 GROUP BY date, type 
+                 WHERE timestamp >= date('now', '-30 days')
+                 GROUP BY date, type, sku
                  ORDER BY date`;
 
             db.all(moveSql, moveParams, (err, moveRows) => {
+                if (err) return res.status(500).json({ error: "DB Error Movements" });
+
                 const dailyStats = {};
+                const skuOutFlow = {}; // SKU -> Total Output
+                let totalOut = 0;
+
+                // Initialize last 7 days for the chart
                 for (let i = 6; i >= 0; i--) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
@@ -71,30 +128,77 @@ router.get('/', verifyToken, (req, res) => {
 
                 if (moveRows) {
                     moveRows.forEach(row => {
+                        // Chart Data (Last 7 Days)
                         if (dailyStats[row.date]) {
-                            dailyStats[row.date][row.type] = row.total_qty;
+                            dailyStats[row.date][row.type] += row.total_qty;
+                        }
+
+                        // Turnover Data (Last 30 Days)
+                        if (row.type === 'OUT') {
+                            totalOut += row.total_qty;
+                            skuOutFlow[row.sku] = (skuOutFlow[row.sku] || 0) + row.total_qty;
                         }
                     });
                 }
                 metrics.movementStats = Object.values(dailyStats);
 
-                // 3. Recent Activity (Last 10)
-                let recentSql = `SELECT m.timestamp, m.type, m.sku, s.description, m.quantity, m.details 
-                        FROM movements m
-                        LEFT JOIN stock s ON m.sku = s.sku
-                        WHERE 1=1 `;
-                const recentParams = [];
-
-                if (userCompany) {
-                    recentSql += ` AND (s.supplier = ? OR m.details LIKE ?)`;
-                    recentParams.push(userCompany, `%${userCompany}%`);
+                // Calculate Turnover (Simple: Total Out / Current Stock). 
+                // Precise would be: Total Cost of Goods Sold / Avg Inventory Value.
+                if (metrics.totalStock > 0) {
+                    metrics.turnoverRate = (totalOut / metrics.totalStock).toFixed(2);
                 }
-                recentSql += ` ORDER BY m.timestamp DESC LIMIT 10`;
 
-                db.all(recentSql, recentParams, (err, recentRows) => {
-                    metrics.recentActivity = recentRows || [];
+                // AI Predictions (Simple Linear Projection)
+                // "When will we run out?" -> Stock / Avg Daily Demand
+                metrics.predictions = [];
 
-                    // 4. Top Movers
+                // Get unique SKUs from stock to predict
+                // We need to match current stock quantities with out flow
+                // We already have 'rows' (current stock).
+                const stockMap = {};
+                rows.forEach(r => {
+                    // Since rows is raw lines, we might have multiple rows per SKU (different locations). Aggregate.
+                    // Assuming 'sku' was not selected in the first query... wait, I changed it to select quantity...
+                    // Let's fix the first query to include SKU.
+                });
+
+                // Re-query stock grouped by SKU for accurate predictions
+                db.all(`SELECT sku, description, SUM(quantity) as qty, supplier FROM stock ${stockWhere} GROUP BY sku`, stockParams, (err, stockRows) => {
+                    if (!err && stockRows) {
+                        stockRows.forEach(item => {
+                            const totalOut30 = skuOutFlow[item.sku] || 0;
+                            const dailyAvg = totalOut30 / 30;
+
+                            if (dailyAvg > 0) {
+                                const daysLeft = Math.floor(item.qty / dailyAvg);
+                                if (daysLeft < 7) {
+                                    metrics.alerts.push({
+                                        type: 'error',
+                                        message: `Low Stock Risk: ${item.sku} will run out in ~${daysLeft} days.`
+                                    });
+                                    metrics.predictions.push({
+                                        sku: item.sku,
+                                        name: item.description,
+                                        daysLeft: daysLeft,
+                                        risk: 'High'
+                                    });
+                                } else if (daysLeft < 14) {
+                                    metrics.predictions.push({
+                                        sku: item.sku,
+                                        name: item.description,
+                                        daysLeft: daysLeft,
+                                        risk: 'Medium'
+                                    });
+                                }
+                            }
+
+                            // Detect Anomalies (Spikes)
+                            // If today's OUT > 3x Daily Avg
+                        });
+                    }
+
+                    // 3. Recent Activity & Top Movers (reuse queries)
+                    // ... [Reuse existing logic for Top Movers and Recent Activity] ...
                     let topSql = `SELECT m.sku, s.description, SUM(m.quantity) as total_moved
                             FROM movements m
                             LEFT JOIN stock s ON m.sku = s.sku
@@ -109,7 +213,24 @@ router.get('/', verifyToken, (req, res) => {
 
                     db.all(topSql, topParams, (err, topRows) => {
                         metrics.topMovers = topRows || [];
-                        res.json(metrics);
+
+                        // Get Recent Activity (Last 10)
+                        let recentSql = `SELECT m.timestamp, m.type, m.sku, s.description, m.quantity, m.details 
+                                FROM movements m
+                                LEFT JOIN stock s ON m.sku = s.sku
+                                WHERE 1=1 `;
+                        const recentParams = [];
+
+                        if (userCompany) {
+                            recentSql += ` AND (s.supplier = ? OR m.details LIKE ?)`;
+                            recentParams.push(userCompany, `%${userCompany}%`);
+                        }
+                        recentSql += ` ORDER BY m.timestamp DESC LIMIT 10`;
+
+                        db.all(recentSql, recentParams, (err, recentRows) => {
+                            metrics.recentActivity = recentRows || [];
+                            res.json(metrics);
+                        });
                     });
                 });
             });

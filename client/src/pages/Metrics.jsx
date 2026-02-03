@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Package, AlertTriangle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Package, AlertTriangle, History, Sparkles } from 'lucide-react';
 import { authHeader } from '../auth';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -42,38 +42,89 @@ const Metrics = () => {
             <h1 style={{ marginBottom: '2rem' }}>{t('warehouseAnalytics')}</h1>
 
             {/* KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center' }}>
-                    <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', marginRight: '1rem' }}>
-                        <Package color="#3b82f6" />
+            {/* KPI Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', marginRight: '1rem' }}>
+                            <Package color="#3b82f6" />
+                        </div>
+                        <div>
+                            <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('totalItems')}</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{metrics.totalStock}</div>
+                        </div>
                     </div>
-                    <div>
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('totalItems')}</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{metrics.totalStock}</div>
-                    </div>
-                </div>
-
-                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center' }}>
-                    <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.2)', marginRight: '1rem' }}>
-                        <ArrowUpRight color="#10b981" />
-                    </div>
-                    <div>
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('released')}</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{metrics.releasedItems}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#94a3b8' }}>
+                        <span>In Stock: {metrics.releasedItems + metrics.retainedItems}</span>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center' }}>
-                    <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.2)', marginRight: '1rem' }}>
-                        <AlertTriangle color="#ef4444" />
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.2)', marginRight: '1rem' }}>
+                            <ArrowUpRight color="#10b981" />
+                        </div>
+                        <div>
+                            <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Turnover Rate</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{metrics.turnoverRate}x</div>
+                        </div>
                     </div>
-                    <div>
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{t('retained')}</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{metrics.retainedItems}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>{metrics.retainedPercentage}{t('percentStock')}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Avg stock renewal per month</div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.2)', marginRight: '1rem' }}>
+                            <AlertTriangle color="#f59e0b" />
+                        </div>
+                        <div>
+                            <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Occupancy Rate</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{metrics.occupancyRate}%</div>
+                        </div>
                     </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700">
+                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min(100, metrics.occupancyRate)}%`, background: metrics.occupancyRate > 90 ? '#ef4444' : '#10b981' }}></div>
+                    </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ padding: '12px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.2)', marginRight: '1rem' }}>
+                            <History color="#ef4444" size={24} />
+                        </div>
+                        <div>
+                            <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Avg Storage Time</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{metrics.avgStorageTime} Days</div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#ef4444' }}>{metrics.deadStockCount} items > 90 days (Dead Stock)</div>
                 </div>
             </div>
+
+            {/* Smart Alerts & Predicitions Banner */}
+            {metrics.alerts && metrics.alerts.length > 0 && (
+                <div style={{ marginBottom: '2rem' }}>
+                    <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={20} color="#fbbf24" style={{ fill: "#fbbf24" }} />
+                        AI Smart Insights
+                    </h3>
+                    <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                        {metrics.alerts.map((alert, i) => (
+                            <div key={i} className="glass-panel" style={{
+                                padding: '1rem',
+                                minWidth: '300px',
+                                borderLeft: `4px solid ${alert.type === 'error' ? '#ef4444' : '#f59e0b'}`,
+                                background: 'rgba(30, 41, 59, 0.7)'
+                            }}>
+                                <div style={{ fontWeight: 600, color: alert.type === 'error' ? '#fca5a5' : '#fcd34d', marginBottom: '0.25rem' }}>
+                                    {alert.type === 'error' ? 'Critical Alert' : 'Optimization Tip'}
+                                </div>
+                                <div style={{ fontSize: '0.9rem' }}>{alert.message}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 {/* Status Distribution */}
