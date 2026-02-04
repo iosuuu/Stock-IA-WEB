@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, Search, Filter, Calendar, FileText } from 'lucide-react';
+import { History, Search, Filter, Calendar, FileText, Download } from 'lucide-react';
 import { authHeader } from '../auth';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -166,6 +166,33 @@ const ActivityHistory = () => {
                         }}>
                             <Filter size={16} style={{ marginRight: '8px' }} />
                             {t('filter')}
+                        </button>
+                    </div>
+
+                    {/* Export Button */}
+                    <div style={{ display: 'flex', alignItems: 'end', minWidth: 0 }}>
+                        <button
+                            type="button"
+                            className="btn"
+                            style={{
+                                height: '42px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                background: 'rgba(59, 130, 246, 0.1)',
+                                color: '#60a5fa',
+                                width: '100%'
+                            }}
+                            onClick={() => {
+                                // Build query string
+                                const cleanQuery = new URLSearchParams();
+                                Object.entries(filters).forEach(([key, value]) => {
+                                    if (value) cleanQuery.append(key, value);
+                                });
+                                window.open(`http://localhost:3001/api/metrics/export/history?${cleanQuery.toString()}`, '_blank');
+                            }}
+                        >
+                            <Download size={18} />
                         </button>
                     </div>
                 </form>

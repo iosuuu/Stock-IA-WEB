@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Package, AlertTriangle, History, Sparkles } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import { ArrowUpRight, ArrowDownRight, Package, AlertTriangle, History, Sparkles, Download } from 'lucide-react';
 import { authHeader } from '../auth';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -97,20 +97,21 @@ const Metrics = () => {
                             <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{metrics.avgStorageTime} Days</div>
                         </div>
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#ef4444' }}>{metrics.deadStockCount} items > 90 days (Dead Stock)</div>
+                    <div style={{ fontSize: '0.85rem', color: '#ef4444' }}>{metrics.deadStockCount} items &gt; 90 days (Dead Stock)</div>
                 </div>
             </div>
 
             {/* Smart Alerts & Predicitions Banner */}
-            {metrics.alerts && metrics.alerts.length > 0 && (
+            {(metrics.alerts?.length > 0 || metrics.predictions?.length > 0) && (
                 <div style={{ marginBottom: '2rem' }}>
                     <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Sparkles size={20} color="#fbbf24" style={{ fill: "#fbbf24" }} />
                         AI Smart Insights
                     </h3>
                     <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                        {metrics.alerts.map((alert, i) => (
-                            <div key={i} className="glass-panel" style={{
+                        {/* Alerts */}
+                        {metrics.alerts?.map((alert, i) => (
+                            <div key={`alert-${i}`} className="glass-panel" style={{
                                 padding: '1rem',
                                 minWidth: '300px',
                                 borderLeft: `4px solid ${alert.type === 'error' ? '#ef4444' : '#f59e0b'}`,
@@ -122,6 +123,24 @@ const Metrics = () => {
                                 <div style={{ fontSize: '0.9rem' }}>{alert.message}</div>
                             </div>
                         ))}
+
+                        {/* Predictions */}
+                        {metrics.predictions?.map((pred, i) => (
+                            <div key={`pred-${i}`} className="glass-panel" style={{
+                                padding: '1rem',
+                                minWidth: '300px',
+                                borderLeft: `4px solid #8b5cf6`,
+                                background: 'rgba(30, 41, 59, 0.7)'
+                            }}>
+                                <div style={{ fontWeight: 600, color: '#c4b5fd', marginBottom: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Demand Forecast</span>
+                                    <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{pred.risk} Risk</span>
+                                </div>
+                                <div style={{ fontSize: '0.9rem' }}>
+                                    <strong>{pred.sku}</strong> will run out in approx <strong>{pred.daysLeft} days</strong>.
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -129,7 +148,16 @@ const Metrics = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 {/* Status Distribution */}
                 <div className="glass-panel" style={{ padding: '1.5rem', height: '400px' }}>
-                    <h3 style={{ marginTop: 0 }}>{t('statusDist')}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0 }}>{t('statusDist')}</h3>
+                        <button
+                            className="btn"
+                            style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                            onClick={() => window.open('http://localhost:3001/api/metrics/export/metrics', '_blank')}
+                        >
+                            <Download size={14} /> CSV
+                        </button>
+                    </div>
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -158,8 +186,22 @@ const Metrics = () => {
                     </div>
                 </div>
 
-                {/* Recent Movements (Traffic Graph) */}
+                {/* Supplier Stats (New) */}
                 <div className="glass-panel" style={{ padding: '1.5rem', height: '400px' }}>
+                    <h3 style={{ marginTop: 0 }}>Stock by Supplier</h3>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={metrics.supplierStats || []}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                            <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={60} />
+                            <YAxis stroke="#94a3b8" />
+                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '8px' }} />
+                            <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Recent Movements (Traffic Graph) */}
+                <div className="glass-panel" style={{ padding: '1.5rem', height: '400px', gridColumn: 'span 2' }}>
                     <h3 style={{ marginTop: 0 }}>{t('trafficOverview')}</h3>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={metrics.movementStats || []}>

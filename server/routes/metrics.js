@@ -197,6 +197,7 @@ router.get('/', verifyToken, (req, res) => {
                         });
                     }
 
+                    // ... inside GET /
                     // 3. Recent Activity & Top Movers (reuse queries)
                     // ... [Reuse existing logic for Top Movers and Recent Activity] ...
                     let topSql = `SELECT m.sku, s.description, SUM(m.quantity) as total_moved
@@ -214,22 +215,29 @@ router.get('/', verifyToken, (req, res) => {
                     db.all(topSql, topParams, (err, topRows) => {
                         metrics.topMovers = topRows || [];
 
-                        // Get Recent Activity (Last 10)
-                        let recentSql = `SELECT m.timestamp, m.type, m.sku, s.description, m.quantity, m.details 
-                                FROM movements m
-                                LEFT JOIN stock s ON m.sku = s.sku
-                                WHERE 1=1 `;
-                        const recentParams = [];
+                        // [NEW] Supplier Stats for Chart
+                        // If user is restricted, this will just be their own company, which is fine
+                        const supplierSql = `SELECT supplier, SUM(quantity) as value FROM stock ${stockWhere} GROUP BY supplier`;
+                        db.all(supplierSql, stockParams, (err, suppRows) => {
+                            metrics.supplierStats = suppRows ? suppRows.map(r => ({ name: r.supplier || 'Unknown', value: r.value })) : [];
 
-                        if (userCompany) {
-                            recentSql += ` AND (s.supplier = ? OR m.details LIKE ?)`;
-                            recentParams.push(userCompany, `%${userCompany}%`);
-                        }
-                        recentSql += ` ORDER BY m.timestamp DESC LIMIT 10`;
+                            // Get Recent Activity (Last 10)
+                            let recentSql = `SELECT m.timestamp, m.type, m.sku, s.description, m.quantity, m.details 
+                                     FROM movements m
+                                     LEFT JOIN stock s ON m.sku = s.sku
+                                     WHERE 1=1 `;
+                            const recentParams = [];
 
-                        db.all(recentSql, recentParams, (err, recentRows) => {
-                            metrics.recentActivity = recentRows || [];
-                            res.json(metrics);
+                            if (userCompany) {
+                                recentSql += ` AND (s.supplier = ? OR m.details LIKE ?)`;
+                                recentParams.push(userCompany, `%${userCompany}%`);
+                            }
+                            recentSql += ` ORDER BY m.timestamp DESC LIMIT 10`;
+
+                            db.all(recentSql, recentParams, (err, recentRows) => {
+                                metrics.recentActivity = recentRows || [];
+                                res.json(metrics);
+                            });
                         });
                     });
                 });
@@ -295,8 +303,11 @@ router.get('/movements', verifyToken, (req, res) => {
     });
 });
 
-// Company Health Stats
+// ... (existing code)
+
+// Company Health Stats (existing)
 router.get('/companies', verifyToken, (req, res) => {
+    // ... (existing implementation)
     const userCompany = req.user.linked_company;
 
     // If user is company-linked, ONLY return their own company
@@ -337,6 +348,100 @@ router.get('/companies', verifyToken, (req, res) => {
         });
 
         res.json(stats);
+    });
+});
+
+// [NEW] Export Metrics Summary (CSV)
+router.get('/export/metrics', verifyToken, (req, res) => {
+    // Simple export of the main metrics or stock list
+    // Let's export current STOCK status as a snapshot
+    const userCompany = req.user.linked_company;
+    let sql = `SELECT sku, description, quantity, location, status, supplier, entry_date FROM stock`;
+    let params = [];
+
+    if (userCompany) {
+        sql += ` WHERE supplier = ?`;
+        params.push(userCompany);
+    }
+
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).send("Database Error");
+
+        // CSV Header
+        let csv = "SKU,Description,Quantity,Location,Status,Supplier,Entry Date\n";
+
+        rows.forEach(row => {
+            csv += `"${row.sku}","${row.description || ''}",${row.quantity},"${row.location || ''}","${row.status}","${row.supplier || ''}","${row.entry_date || ''}"\n`;
+        });
+
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename="stock_metrics_snapshot.csv"');
+        res.send(csv);
+    });
+});
+
+// [NEW] Export History (CSV)
+router.get('/export/history', verifyToken, (req, res) => {
+    // Re-use logic from /movements but return CSV
+    const { search, startDate, endDate, supplier, type } = req.query;
+    const userCompany = req.user.linked_company;
+
+    let sql = `SELECT m.timestamp, m.type, m.sku, m.quantity, m.details, m.document_ref, s.description, s.supplier as current_supplier
+               FROM movements m
+               LEFT JOIN stock s ON m.sku = s.sku
+               WHERE 1=1`;
+
+    const params = [];
+
+    if (userCompany) {
+        sql += ` AND (s.supplier = ? OR m.details LIKE ?)`;
+        params.push(userCompany, `%${userCompany}%`);
+    } else if (supplier) {
+        sql += ` AND (s.supplier LIKE ? OR m.details LIKE ?)`;
+        const wild = `%${supplier}%`;
+        params.push(wild, wild);
+    }
+
+    if (search) {
+        sql += ` AND (m.sku LIKE ? OR s.description LIKE ? OR m.details LIKE ?)`;
+        const wild = `%${search}%`;
+        params.push(wild, wild, wild);
+    }
+
+    if (type) {
+        sql += ` AND m.type = ?`;
+        params.push(type);
+    }
+
+    if (startDate) {
+        sql += ` AND m.timestamp >= ?`;
+        params.push(startDate + ' 00:00:00');
+    }
+
+    if (endDate) {
+        sql += ` AND m.timestamp <= ?`;
+        params.push(endDate + ' 23:59:59');
+    }
+
+    sql += ` ORDER BY m.timestamp DESC LIMIT 1000`; // Higher limit for export
+
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).send("Database Error");
+
+        let csv = "Date,Time,Type,SKU,Description,Quantity,Details,Reference\n";
+        rows.forEach(r => {
+            const dt = new Date(r.timestamp);
+            const dateStr = dt.toLocaleDateString();
+            const timeStr = dt.toLocaleTimeString();
+            const desc = (r.description || r.details || '').replace(/"/g, '""');
+            const details = (r.details || '').replace(/"/g, '""');
+
+            csv += `"${dateStr}","${timeStr}","${r.type}","${r.sku}","${desc}",${r.quantity},"${details}","${r.document_ref || ''}"\n`;
+        });
+
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename="activity_history.csv"');
+        res.send(csv);
     });
 });
 
